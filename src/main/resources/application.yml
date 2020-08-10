@@ -1,0 +1,22 @@
+artiwise:
+  rulesets:
+    - name: test1
+      rules:
+        - name: rule1
+          keywords: korona, bursa
+          conditions:
+            - categories: Yaşam, Teknoloji
+            - tags: news
+        - name: rule2
+          keywords: alarm
+          conditions:
+            - categories: Dünya
+            - tags: news
+    - name: test2
+      rules:
+        - keywords: korona, bursa
+          conditions:
+            - categories: Yaşam
+            - tags: news
+
+
