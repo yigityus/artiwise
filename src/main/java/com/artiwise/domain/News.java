@@ -8,6 +8,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.artiwise.utils.NormalizeUtils.*;
+
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class News {
@@ -15,7 +17,7 @@ public class News {
     private String url;
     private String name;
     private String lang;
-    private Type type;
+    private String type;
     private List<String> tags;
     private List<String> categories;
     private String title;
@@ -28,9 +30,9 @@ public class News {
     private List<String> matchedRules = new ArrayList<>();
 
     public String getText() {
-        return NormalizeUtils.normalize(getTitle()) + " " +
-                NormalizeUtils.normalize(getDescription()) + " " +
-                NormalizeUtils.normalize(getContent());
+        return normalize(getTitle()) + " " +
+                normalize(getDescription()) + " " +
+                normalize(getContent());
     }
 
 }

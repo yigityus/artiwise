@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 @Data
 public class Rule {
     private String name;
-    private Condition condition;
     private String keywords;
     private List<Map<String, List<String>>> conditions;
 

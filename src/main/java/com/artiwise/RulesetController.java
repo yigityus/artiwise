@@ -45,14 +45,15 @@ public class RulesetController {
 
         log.info("resultsetProcessor started");
 
-        process();
+        int counter = process();
 
-        return ResponseEntity.of(Optional.of("Success!"));
+        return ResponseEntity.of(Optional.of(String.format("Success! " + counter + " itmes are procssed")));
     }
 
 
-    private void process() throws NoSuchFieldException, IllegalAccessException, IOException {
+    private int process() throws NoSuchFieldException, IllegalAccessException, IOException {
         int i = 0;
+        int counter = 0;
         List<Ruleset> rulesets = rulesetConfig.getRulesets();
 
         log.info(rulesets.toString());
@@ -60,6 +61,7 @@ public class RulesetController {
         List<News> body = fetchNews(restTemplate, i);
 
         while (body.size() > 0) {
+            counter += body.size();
             List<News> filtered = getFilteredNews(rulesets, body);
             Map<String, List<News>> map = new HashMap<>();
             for (News news : filtered) {
@@ -79,6 +81,7 @@ public class RulesetController {
             printMap(map);
             body = fetchNews(restTemplate, ++i);
         }
+        return counter;
     }
 
     private void processNews(News news, Rule rule) throws NoSuchFieldException, IllegalAccessException {
@@ -90,6 +93,7 @@ public class RulesetController {
                 .map(Emit::getKeyword)
                 .distinct()
                 .collect(Collectors.toList());
+
 
         if (hits.containsAll(rule.getSplittedKeywords())) {
 
@@ -153,7 +157,7 @@ public class RulesetController {
         for (News news : body) {
             List<String> keywords = new ArrayList<>();
             for (Ruleset ruleset : rulesets) {
-                keywords.addAll(ruleset.getSplittedKeywords());
+                keywords.addAll(ruleset.getKeywords());
             }
             Trie trie = Trie.builder()
                     .addKeywords(keywords)
@@ -166,7 +170,7 @@ public class RulesetController {
     }
 
     private List<News> fetchNews(RestTemplate restTemplate, int i) {
-        String artiwiseNewsUrl = "http://mock.artiwise.com/api/news?_page="+ i +"&_limit=100";
+        String artiwiseNewsUrl = "http://mock.artiwise.com/api/news?_page=" + i + "&_limit=100";
         ResponseEntity<List<News>> exchange = restTemplate.exchange(
                 artiwiseNewsUrl, HttpMethod.GET, null,
                 new ParameterizedTypeReference<>() {

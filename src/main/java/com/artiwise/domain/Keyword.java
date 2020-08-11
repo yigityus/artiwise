@@ -1,5 +1,8 @@
 package com.artiwise.domain;
 
-public interface Keyword {
+import lombok.Data;
 
+@Data
+public class Keyword {
+    private String name;
 }
