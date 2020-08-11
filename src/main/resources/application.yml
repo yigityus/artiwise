@@ -14,7 +14,8 @@ artiwise:
             - tags: news
     - name: test2
       rules:
-        - keywords: korona, bursa
+        - name: rule5
+          keywords: korona, bursa
           conditions:
             - categories: Yaşam
             - tags: news

@@ -15,9 +15,9 @@ public class News {
     private Long id;
     private String url;
     private String name;
-    private Language lang;
+    private String lang;
     private Type type;
-    private List<Tag> tags;
+    private List<String> tags;
     private List<String> categories;
     private String title;
     private String description;
@@ -26,7 +26,7 @@ public class News {
     private Instant modified_date;
     private Instant published_date;
 
-    private List<Rule> matchedRules = new ArrayList<>();
+    private List<String> matchedRules = new ArrayList<>();
 
     public String getText() {
         return normalize(getTitle()) + " " +

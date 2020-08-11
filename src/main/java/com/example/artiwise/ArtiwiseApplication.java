@@ -1,6 +1,8 @@
 package com.example.artiwise;
 
-import com.example.artiwise.domain.*;
+import com.example.artiwise.domain.News;
+import com.example.artiwise.domain.Rule;
+import com.example.artiwise.domain.Ruleset;
 import com.example.artiwise.utils.RulesetProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +20,6 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.lang.reflect.Field;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -50,122 +51,120 @@ public class ArtiwiseApplication {
     @Bean
     public CommandLineRunner run(RestTemplate restTemplate) {
         return args -> {
-            final String artiwiseNewsUrl = "http://mock.artiwise.com/api/news?_page=0&_limit=1";
-            Field[] allFields = News.class.getDeclaredFields();
-            for (Field field : allFields) {
-                log.info(field.getName());
-            }
-
-            ResponseEntity<List<News>> exchange = restTemplate.exchange(
-                    artiwiseNewsUrl, HttpMethod.GET, null,
-                    new ParameterizedTypeReference<>() {
-                    });
-
+            int i = 0;
             List<Ruleset> rulesets = rulesetProperties.getRulesets();
-            List<News> body = exchange.getBody();
-            List<News> filtered = new ArrayList<>();
+            List<News> body = fetchNews(restTemplate, i);
 
-            for (News news : body) {
-
-                List<String> keywords = new ArrayList<>();
-
-                for (Ruleset ruleset : rulesets) {
-                    keywords.addAll(ruleset.getSplittedKeywords());
-                }
-
-                Trie trie = Trie.builder()
-                        .addKeywords(keywords)
-                        .build();
-
-                if (trie.parseText(news.getText()).size() > 0) {
-                    filtered.add(news);
-                }
-            }
+            while (body.size() > 0) {
+                List<News> filtered = getFilteredNews(rulesets, body);
 
 
-            Map<String, List<News>> map = new HashMap<>();
-            for (News news : filtered) {
+                Map<String, List<News>> map = new HashMap<>();
+                for (News news : filtered) {
 
-                for (Ruleset ruleset : rulesets) {
-                    log.info(news.getText());
-                    List<Rule> rules = ruleset.getRules();
+                    for (Ruleset ruleset : rulesets) {
+                        log.info(news.getText());
+                        List<Rule> rules = ruleset.getRules();
 
-                    for (Rule rule : rules) {
+                        for (Rule rule : rules) {
 
-                        Trie trie = Trie.builder()
-                                .addKeywords(rule.getSplittedKeywords())
-                                .build();
+                            Trie trie = Trie.builder()
+                                    .addKeywords(rule.getSplittedKeywords())
+                                    .build();
 
-                        Collection<Emit> emits = trie.parseText(news.getText());
-                        List<String> hits = emits.stream()
-                                .map(Emit::getKeyword)
-                                .distinct()
-                                .collect(Collectors.toList());
+                            Collection<Emit> emits = trie.parseText(news.getText());
+                            List<String> hits = emits.stream()
+                                    .map(Emit::getKeyword)
+                                    .distinct()
+                                    .collect(Collectors.toList());
 
-                        if (hits.containsAll(rule.getSplittedKeywords())) {
+                            if (hits.containsAll(rule.getSplittedKeywords())) {
 
-                            List<Map<String, List<String>>> conditions = rule.getConditions();
-                            boolean passed = true;
-                            for (Map<String, List<String>> condition : conditions) {
-                                for (String key : condition.keySet()) {
-                                    List<String> values = condition.get(key);
-                                    Field field = news.getClass().getDeclaredField(key);
-                                    log.info(String.valueOf(field.getType()));
-                                    List<String> items = null;
+                                List<Map<String, List<String>>> conditions = rule.getConditions();
+                                boolean passed = true;
+                                for (Map<String, List<String>> condition : conditions) {
+                                    for (String key : condition.keySet()) {
+                                        List<String> values = condition.get(key);
+                                        Field field = news.getClass().getDeclaredField(key);
+                                        log.info(String.valueOf(field.getType()));
+                                        List<String> items = new ArrayList<>();
 
-                                    if (field.getType().equals(List.class)) {
-                                        field.setAccessible(true);
-                                        List<String> list = (List<String>) field.get(news);
-                                        for (Object s : list) {
-                                            if (items == null) {
-                                                items = new ArrayList<>();
-                                            }
-
-                                            if (s instanceof Tag) {
-                                                items.add(((Tag) s).name());
-                                            }
-                                            if (s instanceof Type) {
-                                                items.add(((Tag) s).name());
-                                            }
-                                            if (s instanceof String) {
-                                                items.add((String) s);
-                                            }
-
+                                        if (field.getType().equals(List.class)) {
+                                            field.setAccessible(true);
+                                            List<String> list = (List<String>) field.get(news);
+                                            items.addAll(list);
+                                        } else {
+                                            field.setAccessible(true);
+                                            String item = (String) field.get(news);
+                                            items = Collections.singletonList(item);
                                         }
-                                    } else {
-                                        field.setAccessible(true);
-                                        String item = (String) field.get(news);
-                                        items = Collections.singletonList(item);
-                                    }
 
-                                    if (!CollectionUtils.containsAny(values, items)) {
-                                        passed = false;
-                                        break;
+                                        if (!CollectionUtils.containsAny(values, items)) {
+                                            passed = false;
+                                            break;
+                                        }
                                     }
                                 }
-                            }
 
-                            if (passed) {
-                                news.getMatchedRules().add(rule);
+                                if (passed) {
+                                    news.getMatchedRules().add(rule.getName());
+                                }
                             }
                         }
-                    }
 
-                    if (!CollectionUtils.isEmpty(news.getMatchedRules())) {
-                        map.computeIfAbsent(ruleset.getName(), k -> new ArrayList<>()).add(news);
+                        if (!CollectionUtils.isEmpty(news.getMatchedRules())) {
+                            map.computeIfAbsent(ruleset.getName(), k -> new ArrayList<>()).add(news);
+                        }
                     }
                 }
-            }
 
-            for (String ruleset : map.keySet()) {
-                List<News> news = map.get(ruleset);
-                Path file = Paths.get(ruleset + ".txt");
+                for (String ruleset : map.keySet()) {
 
-                Files.write(file, news.toString().getBytes());
+                    List<News> news = map.get(ruleset);
+                    Path file = Paths.get(ruleset + ".txt");
+                    if (!Files.exists(file)) {
+                        Files.createFile(file);
+                    }
 
+                    Files.write(file,
+                            objectMapper
+                                    .writerWithDefaultPrettyPrinter()
+                                    .writeValueAsBytes(news),
+                            StandardOpenOption.APPEND);
+
+                }
+
+                body = fetchNews(restTemplate, ++i);
             }
 
         };
+    }
+
+    private List<News> getFilteredNews(List<Ruleset> rulesets, List<News> body) {
+        List<News> filtered = new ArrayList<>();
+        for (News news : body) {
+            List<String> keywords = new ArrayList<>();
+            for (Ruleset ruleset : rulesets) {
+                keywords.addAll(ruleset.getSplittedKeywords());
+            }
+            Trie trie = Trie.builder()
+                    .addKeywords(keywords)
+                    .build();
+            if (!CollectionUtils.isEmpty(trie.parseText(news.getText()))) {
+                filtered.add(news);
+            }
+        }
+        return filtered;
+    }
+
+    private List<News> fetchNews(RestTemplate restTemplate, int i) {
+        String artiwiseNewsUrl = "http://mock.artiwise.com/api/news?_page="+ i +"&_limit=100";
+        ResponseEntity<List<News>> exchange = restTemplate.exchange(
+                artiwiseNewsUrl, HttpMethod.GET, null,
+                new ParameterizedTypeReference<>() {
+                });
+        List<News> body = exchange.getBody();
+        return body;
     }
 
 
