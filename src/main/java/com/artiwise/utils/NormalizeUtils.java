@@ -1,4 +1,4 @@
-package com.example.artiwise.utils;
+package com.artiwise.utils;
 
 import org.springframework.util.StringUtils;
 
@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-public class SearchUtils {
+public class NormalizeUtils {
     static final List<String> stopWords = Arrays.asList("hiç", "ile", "ki", "doç", "dr");
 
     public static String normalize(String text) {

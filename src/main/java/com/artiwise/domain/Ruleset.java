@@ -1,11 +1,9 @@
-package com.example.artiwise.domain;
+package com.artiwise.domain;
 
 import lombok.Data;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Data
 public class Ruleset {

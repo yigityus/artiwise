@@ -1,13 +1,12 @@
-package com.example.artiwise.domain;
+package com.artiwise.domain;
 
+import com.artiwise.utils.NormalizeUtils;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.example.artiwise.utils.SearchUtils.normalize;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -29,9 +28,9 @@ public class News {
     private List<String> matchedRules = new ArrayList<>();
 
     public String getText() {
-        return normalize(getTitle()) + " " +
-                normalize(getDescription()) + " " +
-                normalize(getContent());
+        return NormalizeUtils.normalize(getTitle()) + " " +
+                NormalizeUtils.normalize(getDescription()) + " " +
+                NormalizeUtils.normalize(getContent());
     }
 
 }

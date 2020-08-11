@@ -1,4 +1,4 @@
-package com.example.artiwise.domain;
+package com.artiwise.domain;
 
 import lombok.Data;
 
